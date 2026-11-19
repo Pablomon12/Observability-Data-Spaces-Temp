@@ -1,0 +1,15 @@
+PREFIX obs: <https://example.org/dataspace-observability/ontology#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+
+SELECT ?proceso ?registro ?fecha ?estado ?responsableRegistro ?conector ?acuerdo
+WHERE {
+    VALUES ?tipo { obs:NegotiationStateObservation obs:TransferStateObservation }
+    ?registro a ?tipo ;
+        obs:aboutProcess ?proceso ;
+        obs:dspState ?estado ;
+        obs:occurredAt ?fecha ;
+        obs:sourceConnector ?conector ;
+        prov:wasAttributedTo ?responsableRegistro .
+    OPTIONAL { ?proceso (obs:resultingAgreement|obs:underAgreement) ?acuerdo . }
+}
+ORDER BY ?proceso ?fecha ?registro

@@ -1,0 +1,209 @@
+@prefix obs: <https://example.org/dataspace-observability/ontology#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://example.org/dataspace-observability/ontology> a owl:Ontology ;
+    rdfs:label "Observabilidad en espacios de datos"@es ;
+    owl:versionInfo "0.1.0" .
+
+# Declaraciones externas para cargar el módulo OWL sin resolver imports.
+dcat:Catalog a owl:Class .
+dcat:Dataset a owl:Class .
+dqv:QualityMeasurement a owl:Class .
+odrl:Agreement a owl:Class .
+odrl:Policy a owl:Class .
+odrl:Rule a owl:Class .
+prov:Agent a owl:Class .
+prov:Activity a owl:Class .
+prov:Entity a owl:Class .
+prov:SoftwareAgent a owl:Class .
+
+obs:DataSpace a owl:Class ;
+    rdfs:comment "Contexto de gobernanza en el que se registra un intercambio."@es .
+
+obs:Participant a owl:Class ;
+    rdfs:subClassOf prov:Agent ;
+    rdfs:comment "Agente que participa en un espacio de datos. Su rol se indica en cada proceso."@es .
+
+obs:Connector a owl:Class ;
+    rdfs:subClassOf prov:SoftwareAgent, prov:Agent ;
+    rdfs:comment "Instancia operativa del software que actúa en el espacio de datos."@es .
+
+obs:ExchangeProcess a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:comment "Proceso del plano de control observado en un espacio de datos."@es .
+
+obs:CatalogInteraction a owl:Class ;
+    rdfs:subClassOf obs:ExchangeProcess ;
+    rdfs:comment "Interacción de solicitud de catálogo. Puede fallar sin obtener un catálogo."@es .
+
+obs:ContractNegotiation a owl:Class ;
+    rdfs:subClassOf obs:ExchangeProcess ;
+    rdfs:comment "Negociación de las condiciones de intercambio para un conjunto de datos."@es .
+
+obs:TransferProcess a owl:Class ;
+    rdfs:subClassOf obs:ExchangeProcess ;
+    rdfs:comment "Coordinación del acceso o transferencia bajo un acuerdo, en el plano de control."@es .
+
+obs:ObservationRecord a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    owl:disjointWith prov:Activity ;
+    rdfs:comment "Registro producido al observar un hecho, una señal o una decisión."@es .
+
+obs:CatalogObservation a owl:Class ;
+    rdfs:subClassOf obs:ObservationRecord ;
+    rdfs:comment "Registro de una solicitud, respuesta o error de catálogo."@es .
+
+obs:NegotiationStateObservation a owl:Class ;
+    rdfs:subClassOf obs:ObservationRecord ;
+    rdfs:comment "Estado DSP de una negociación, tal como lo observó el emisor."@es .
+
+obs:TransferStateObservation a owl:Class ;
+    rdfs:subClassOf obs:ObservationRecord ;
+    rdfs:comment "Estado DSP de un proceso de transferencia, tal como lo observó el emisor."@es .
+
+obs:PolicyEvaluation a owl:Class ;
+    rdfs:subClassOf obs:ObservationRecord ;
+    rdfs:comment "Resultado comunicado por un evaluador acerca de una política y, opcionalmente, una regla."@es .
+
+obs:LogRecord a owl:Class ;
+    rdfs:subClassOf obs:ObservationRecord ;
+    rdfs:comment "Entrada de registro emitida por un componente."@es .
+
+obs:ConnectorHealthRecord a owl:Class ;
+    rdfs:subClassOf obs:ObservationRecord ;
+    rdfs:comment "Estado operativo observado de un conector, independiente del estado DSP."@es .
+
+obs:Trace a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:comment "Agrupación de spans que comparten un identificador de traza."@es .
+
+obs:Span a owl:Class ;
+    rdfs:subClassOf obs:ObservationRecord ;
+    rdfs:comment "Registro de una unidad de trabajo instrumentada, con principio y fin."@es .
+
+obs:MetricDefinition a owl:Class ;
+    rdfs:comment "Definición de una magnitud operativa con nombre y unidad."@es .
+
+obs:MetricSample a owl:Class ;
+    rdfs:subClassOf obs:ObservationRecord ;
+    rdfs:comment "Valor escalar finito de una magnitud operativa en un instante."@es .
+
+obs:DatasetQualityRecord a owl:Class ;
+    rdfs:subClassOf obs:ObservationRecord, dqv:QualityMeasurement ;
+    rdfs:comment "Medición de calidad sobre un conjunto de datos o una distribución."@es .
+
+obs:inDataSpace a owl:ObjectProperty ;
+    rdfs:domain obs:ExchangeProcess ;
+    rdfs:range obs:DataSpace .
+obs:provider a owl:ObjectProperty ;
+    rdfs:domain obs:ExchangeProcess ;
+    rdfs:range obs:Participant .
+obs:consumer a owl:ObjectProperty ;
+    rdfs:domain obs:ExchangeProcess ;
+    rdfs:range obs:Participant .
+obs:operatedBy a owl:ObjectProperty ;
+    rdfs:domain obs:Connector ;
+    rdfs:range obs:Participant .
+obs:catalog a owl:ObjectProperty ;
+    rdfs:domain obs:CatalogInteraction ;
+    rdfs:range dcat:Catalog .
+obs:dataset a owl:ObjectProperty ;
+    rdfs:domain obs:ExchangeProcess ;
+    rdfs:range dcat:Dataset .
+obs:resultingAgreement a owl:ObjectProperty ;
+    rdfs:domain obs:ContractNegotiation ;
+    rdfs:range odrl:Agreement .
+obs:underAgreement a owl:ObjectProperty ;
+    rdfs:domain obs:TransferProcess ;
+    rdfs:range odrl:Agreement .
+obs:aboutProcess a owl:ObjectProperty ;
+    rdfs:domain obs:ObservationRecord ;
+    rdfs:range obs:ExchangeProcess .
+obs:sourceConnector a owl:ObjectProperty ;
+    rdfs:domain obs:ObservationRecord ;
+    rdfs:range obs:Connector .
+obs:monitoredConnector a owl:ObjectProperty ;
+    rdfs:domain obs:ConnectorHealthRecord ;
+    rdfs:range obs:Connector ;
+    rdfs:comment "Conector al que se refiere el estado de salud, que puede diferir del origen del registro."@es .
+obs:evaluatedPolicy a owl:ObjectProperty ;
+    rdfs:domain obs:PolicyEvaluation ;
+    rdfs:range odrl:Policy .
+obs:evaluatedRule a owl:ObjectProperty ;
+    rdfs:domain obs:PolicyEvaluation ;
+    rdfs:range odrl:Rule .
+obs:inTrace a owl:ObjectProperty ;
+    rdfs:domain obs:ObservationRecord ;
+    rdfs:range obs:Trace .
+obs:parentSpan a owl:ObjectProperty ;
+    rdfs:domain obs:Span ;
+    rdfs:range obs:Span .
+obs:metric a owl:ObjectProperty ;
+    rdfs:domain obs:MetricSample ;
+    rdfs:range obs:MetricDefinition .
+
+obs:providerProcessId a owl:DatatypeProperty ;
+    rdfs:domain obs:ExchangeProcess ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Identificador asignado por el proveedor, tal como se conoce en la observación."@es .
+obs:consumerProcessId a owl:DatatypeProperty ;
+    rdfs:domain obs:ExchangeProcess ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Identificador asignado por el consumidor, tal como se conoce en la observación."@es .
+obs:catalogPhase a owl:DatatypeProperty ;
+    rdfs:domain obs:CatalogObservation ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Categoría local del registro de catálogo."@es .
+obs:dspState a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Nombre del estado en el protocolo DSP 2025-1. Cada tipo de proceso usa su propia lista."@es .
+obs:occurredAt a owl:DatatypeProperty ;
+    rdfs:domain obs:ObservationRecord ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "Instante del hecho en el reloj de origen."@es .
+obs:observedAt a owl:DatatypeProperty ;
+    rdfs:domain obs:ObservationRecord ;
+    rdfs:range xsd:dateTime ;
+    rdfs:comment "Instante de observación en el reloj del observador."@es .
+obs:healthState a owl:DatatypeProperty ;
+    rdfs:domain obs:ConnectorHealthRecord ;
+    rdfs:range xsd:string .
+obs:decision a owl:DatatypeProperty ;
+    rdfs:domain obs:PolicyEvaluation ;
+    rdfs:range xsd:string .
+obs:body a owl:DatatypeProperty ;
+    rdfs:domain obs:LogRecord ;
+    rdfs:range xsd:string .
+obs:severityText a owl:DatatypeProperty ;
+    rdfs:domain obs:LogRecord ;
+    rdfs:range xsd:string .
+obs:traceId a owl:DatatypeProperty ;
+    rdfs:domain obs:Trace ;
+    rdfs:range xsd:string .
+obs:spanId a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Identificador del span dentro de su traza, en un span o en un registro correlacionado."@es .
+obs:spanName a owl:DatatypeProperty ;
+    rdfs:domain obs:Span ;
+    rdfs:range xsd:string .
+obs:metricName a owl:DatatypeProperty ;
+    rdfs:domain obs:MetricDefinition ;
+    rdfs:range xsd:string .
+obs:unit a owl:DatatypeProperty ;
+    rdfs:domain obs:MetricDefinition ;
+    rdfs:range xsd:string .
+obs:numericValue a owl:DatatypeProperty ;
+    rdfs:domain obs:MetricSample ;
+    rdfs:range xsd:decimal .
+obs:spanStartedAt a owl:DatatypeProperty ;
+    rdfs:domain obs:Span ;
+    rdfs:range xsd:dateTime .
+obs:spanEndedAt a owl:DatatypeProperty ;
+    rdfs:domain obs:Span ;
+    rdfs:range xsd:dateTime .

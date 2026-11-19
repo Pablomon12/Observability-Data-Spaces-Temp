@@ -1,0 +1,183 @@
+@prefix ex: <https://example.org/dataspace-observability/examples/olivar/> .
+@prefix obs: <https://example.org/dataspace-observability/ontology#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:espacio a obs:DataSpace .
+ex:cooperativa a obs:Participant, odrl:Party .
+ex:analitica a obs:Participant, odrl:Party .
+ex:instituto a obs:Participant .
+ex:observador a obs:Participant .
+ex:conector-proveedor a obs:Connector ; obs:operatedBy ex:cooperativa .
+ex:conector-consumidor a obs:Connector ; obs:operatedBy ex:analitica .
+
+ex:catalogo a dcat:Catalog ; dcat:dataset ex:datos-iot .
+ex:datos-iot a dcat:Dataset, odrl:Asset .
+
+ex:consulta-catalogo a obs:CatalogInteraction ;
+    obs:inDataSpace ex:espacio ;
+    obs:provider ex:cooperativa ;
+    obs:consumer ex:analitica ;
+    obs:catalog ex:catalogo .
+
+ex:catalogo-devuelto a obs:CatalogObservation ;
+    obs:aboutProcess ex:consulta-catalogo ;
+    obs:catalogPhase "RESPONSE" ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:occurredAt "2026-01-20T09:00:00Z"^^xsd:dateTime .
+
+# Proyección RDF de los términos del acuerdo. El timestamp y el sobre DSP pertenecen al mensaje original.
+ex:acuerdo a odrl:Agreement ;
+    odrl:target ex:datos-iot ;
+    odrl:assigner ex:cooperativa ;
+    odrl:assignee ex:analitica ;
+    odrl:permission ex:permiso-uso .
+
+ex:permiso-uso a odrl:Permission ; odrl:action odrl:use .
+
+ex:negociacion a obs:ContractNegotiation ;
+    obs:inDataSpace ex:espacio ;
+    obs:provider ex:cooperativa ;
+    obs:consumer ex:analitica ;
+    obs:dataset ex:datos-iot ;
+    obs:consumerProcessId "urn:uuid:20f852cb-4d49-4652-8763-40206f54c8f0" ;
+    obs:providerProcessId "urn:uuid:ce6ac3b3-c05f-4d2b-910a-38b1352a370d" ;
+    obs:resultingAgreement ex:acuerdo .
+
+# Se conservan dos estados observados. El intervalo puede contener eventos que no se recopilaron.
+ex:negociacion-solicitada a obs:NegotiationStateObservation ;
+    obs:aboutProcess ex:negociacion ;
+    obs:dspState "REQUESTED" ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:occurredAt "2026-01-20T09:01:00Z"^^xsd:dateTime .
+
+ex:negociacion-finalizada a obs:NegotiationStateObservation ;
+    obs:aboutProcess ex:negociacion ;
+    obs:dspState "FINALIZED" ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:observador ;
+    obs:occurredAt "2026-01-20T09:02:00Z"^^xsd:dateTime ;
+    obs:observedAt "2026-01-20T09:02:01Z"^^xsd:dateTime .
+
+ex:negociacion-sin-acuerdo a obs:ContractNegotiation ;
+    obs:inDataSpace ex:espacio ;
+    obs:provider ex:cooperativa ;
+    obs:consumer ex:instituto ;
+    obs:dataset ex:datos-iot ;
+    obs:consumerProcessId "urn:uuid:7dd0d37f-55a6-4e10-ace8-36856077fe4f" .
+
+ex:negociacion-terminada a obs:NegotiationStateObservation ;
+    obs:aboutProcess ex:negociacion-sin-acuerdo ;
+    obs:dspState "TERMINATED" ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:occurredAt "2026-01-20T09:02:30Z"^^xsd:dateTime .
+
+ex:transferencia-1 a obs:TransferProcess ;
+    obs:inDataSpace ex:espacio ;
+    obs:provider ex:cooperativa ;
+    obs:consumer ex:analitica ;
+    obs:dataset ex:datos-iot ;
+    obs:underAgreement ex:acuerdo ;
+    obs:consumerProcessId "urn:uuid:61d7dc8d-2c2b-4658-9454-beb04052c8d5" ;
+    obs:providerProcessId "urn:uuid:f3382acd-cd56-40a2-8fb9-7dffbe3477ef" .
+
+ex:transferencia-2 a obs:TransferProcess ;
+    obs:inDataSpace ex:espacio ;
+    obs:provider ex:cooperativa ;
+    obs:consumer ex:analitica ;
+    obs:dataset ex:datos-iot ;
+    obs:underAgreement ex:acuerdo ;
+    obs:consumerProcessId "urn:uuid:ffdf2525-f046-4bff-b7f2-57866e0e3374" ;
+    obs:providerProcessId "urn:uuid:8fadc0cb-817c-4af5-932c-76326c464671" .
+
+ex:transferencia-completada a obs:TransferStateObservation ;
+    obs:aboutProcess ex:transferencia-1 ;
+    obs:dspState "COMPLETED" ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:occurredAt "2026-01-20T09:03:20Z"^^xsd:dateTime .
+
+ex:transferencia-iniciada a obs:TransferStateObservation ;
+    obs:aboutProcess ex:transferencia-2 ;
+    obs:dspState "STARTED" ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:occurredAt "2026-01-20T09:03:30Z"^^xsd:dateTime .
+
+ex:transferencia-suspendida a obs:TransferStateObservation ;
+    obs:aboutProcess ex:transferencia-2 ;
+    obs:dspState "SUSPENDED" ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:occurredAt "2026-01-20T09:03:39Z"^^xsd:dateTime .
+
+ex:traza a obs:Trace ; obs:traceId "cd6c4c8bc1550caa5cdbbc7bb6d5d87d" .
+ex:span-consumidor a obs:Span ;
+    obs:inTrace ex:traza ;
+    obs:spanId "7c0cbb47958dac89" ;
+    obs:spanName "Solicitar datos" ;
+    obs:aboutProcess ex:transferencia-2 ;
+    obs:sourceConnector ex:conector-consumidor ;
+    prov:wasAttributedTo ex:analitica ;
+    obs:spanStartedAt "2026-01-20T09:03:33Z"^^xsd:dateTime ;
+    obs:spanEndedAt "2026-01-20T09:03:39Z"^^xsd:dateTime .
+
+ex:span-proveedor a obs:Span ;
+    obs:inTrace ex:traza ;
+    obs:parentSpan ex:span-consumidor ;
+    obs:spanId "6baeca4cbf159fa5" ;
+    obs:spanName "Leer distribución" ;
+    obs:aboutProcess ex:transferencia-2 ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:spanStartedAt "2026-01-20T09:03:34Z"^^xsd:dateTime ;
+    obs:spanEndedAt "2026-01-20T09:03:38Z"^^xsd:dateTime .
+
+ex:log-lectura a obs:LogRecord ;
+    obs:aboutProcess ex:transferencia-2 ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:occurredAt "2026-01-20T09:03:38Z"^^xsd:dateTime ;
+    obs:inTrace ex:traza ;
+    obs:spanId "6baeca4cbf159fa5" ;
+    obs:severityText "ERROR" ;
+    obs:body "Se agotó el tiempo de lectura de la distribución." .
+
+ex:evaluacion a obs:PolicyEvaluation ;
+    obs:aboutProcess ex:transferencia-2 ;
+    obs:evaluatedPolicy ex:acuerdo ;
+    obs:evaluatedRule ex:permiso-uso ;
+    obs:decision "ALLOW" ;
+    prov:wasAttributedTo ex:conector-proveedor ;
+    obs:occurredAt "2026-01-20T09:03:31Z"^^xsd:dateTime .
+
+ex:salud-proveedor a obs:ConnectorHealthRecord ;
+    obs:monitoredConnector ex:conector-proveedor ;
+    obs:healthState "DEGRADED" ;
+    prov:wasAttributedTo ex:observador ;
+    obs:occurredAt "2026-01-20T09:03:45Z"^^xsd:dateTime .
+
+ex:latencia a obs:MetricDefinition ;
+    obs:metricName "latencia de respuesta" ; obs:unit "ms" .
+ex:latencia-observada a obs:MetricSample ;
+    obs:metric ex:latencia ;
+    obs:numericValue 150.0 ;
+    obs:aboutProcess ex:transferencia-1 ;
+    obs:sourceConnector ex:conector-proveedor ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:occurredAt "2026-01-20T09:03:20Z"^^xsd:dateTime .
+
+ex:completitud a dqv:Dimension .
+ex:proporcion-campos a dqv:Metric ; dqv:inDimension ex:completitud .
+ex:calidad-datos a obs:DatasetQualityRecord ;
+    dqv:computedOn ex:datos-iot ;
+    dqv:isMeasurementOf ex:proporcion-campos ;
+    dqv:value 0.99 ;
+    prov:wasAttributedTo ex:cooperativa ;
+    obs:occurredAt "2026-01-20T08:55:00Z"^^xsd:dateTime .

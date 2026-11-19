@@ -1,0 +1,288 @@
+@prefix obs: <https://example.org/dataspace-observability/ontology#> .
+@prefix shape: <https://example.org/dataspace-observability/shapes#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+shape:Time a sh:NodeShape ;
+    sh:datatype xsd:dateTime ;
+    sh:pattern "(Z|[+-][0-9]{2}:[0-9]{2})$" ;
+    sh:message "La fecha debe incluir una zona horaria explícita."@es .
+
+shape:Connector a sh:NodeShape ;
+    sh:targetClass obs:Connector ;
+    sh:nodeKind sh:IRI ;
+    sh:property [
+        sh:path obs:operatedBy ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ; sh:class obs:Participant
+    ] .
+
+shape:ExchangeProcess a sh:NodeShape ;
+    sh:targetClass obs:ExchangeProcess ;
+    sh:nodeKind sh:IRI ;
+    sh:property [
+        sh:path obs:inDataSpace ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ; sh:class obs:DataSpace
+    ], [
+        sh:path obs:provider ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ; sh:class obs:Participant
+    ], [
+        sh:path obs:consumer ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ; sh:class obs:Participant
+    ], [
+        sh:path obs:consumerProcessId ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1
+    ], [
+        sh:path obs:providerProcessId ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1
+    ] .
+
+shape:ProcessIdentifier a sh:NodeShape ;
+    sh:targetClass obs:ContractNegotiation, obs:TransferProcess ;
+    sh:or (
+        [ sh:property [ sh:path obs:consumerProcessId ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path obs:providerProcessId ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "Registra al menos un identificador de proceso de cualquiera de las partes."@es .
+
+shape:Dataset a sh:PropertyShape ;
+    sh:path obs:dataset ; sh:minCount 1 ; sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ; sh:class dcat:Dataset .
+
+shape:CatalogInteraction a sh:NodeShape ;
+    sh:targetClass obs:CatalogInteraction ;
+    sh:property [
+        sh:path obs:catalog ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class dcat:Catalog
+    ] .
+
+shape:ContractNegotiation a sh:NodeShape ;
+    sh:targetClass obs:ContractNegotiation ;
+    sh:property shape:Dataset, [
+        sh:path obs:resultingAgreement ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ; sh:class odrl:Agreement
+    ] ;
+    sh:or (
+        [ sh:property [ sh:path obs:resultingAgreement ; sh:maxCount 0 ] ]
+        [ sh:property [ sh:path (obs:resultingAgreement odrl:target) ; sh:equals obs:dataset ] ]
+    ) ;
+    sh:message "Si se registra un acuerdo resultante, su activo debe coincidir con el dataset de la negociación."@es .
+
+shape:TransferProcess a sh:NodeShape ;
+    sh:targetClass obs:TransferProcess ;
+    sh:property shape:Dataset, [
+        sh:path obs:underAgreement ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ; sh:class odrl:Agreement
+    ], [
+        sh:path (obs:underAgreement odrl:target) ; sh:equals obs:dataset ;
+        sh:message "El activo del acuerdo debe coincidir con el dataset de la transferencia."@es
+    ] .
+
+shape:ObservationRecord a sh:NodeShape ;
+    sh:targetClass obs:ObservationRecord ;
+    sh:nodeKind sh:IRI ;
+    sh:property [
+        sh:path prov:wasAttributedTo ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ; sh:class prov:Agent
+    ], [
+        sh:path obs:aboutProcess ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class obs:ExchangeProcess
+    ], [
+        sh:path obs:sourceConnector ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class obs:Connector
+    ], [
+        sh:path obs:occurredAt ; sh:maxCount 1 ; sh:node shape:Time
+    ], [
+        sh:path obs:observedAt ; sh:maxCount 1 ; sh:node shape:Time
+    ] .
+
+shape:SourceConnector a sh:PropertyShape ;
+    sh:path obs:sourceConnector ; sh:minCount 1 .
+
+shape:OccurredAt a sh:PropertyShape ;
+    sh:path obs:occurredAt ; sh:minCount 1 .
+
+shape:CatalogObservation a sh:NodeShape ;
+    sh:targetClass obs:CatalogObservation ;
+    sh:property shape:SourceConnector, shape:OccurredAt, [
+        sh:path obs:aboutProcess ; sh:minCount 1 ; sh:class obs:CatalogInteraction
+    ], [
+        sh:path obs:catalogPhase ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("REQUEST" "RESPONSE" "ERROR")
+    ] .
+
+shape:NegotiationStateObservation a sh:NodeShape ;
+    sh:targetClass obs:NegotiationStateObservation ;
+    sh:property shape:SourceConnector, shape:OccurredAt, [
+        sh:path obs:aboutProcess ; sh:minCount 1 ; sh:class obs:ContractNegotiation
+    ], [
+        sh:path obs:dspState ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("REQUESTED" "OFFERED" "ACCEPTED" "AGREED" "VERIFIED" "FINALIZED" "TERMINATED")
+    ] ;
+    sh:or (
+        [ sh:property [ sh:path obs:dspState ; sh:in ("REQUESTED" "OFFERED" "ACCEPTED" "TERMINATED") ] ]
+        [ sh:property [ sh:path (obs:aboutProcess obs:resultingAgreement) ; sh:minCount 1 ] ]
+    ) ;
+    sh:message "Un registro AGREED, VERIFIED o FINALIZED requiere enlazar el acuerdo de la negociación."@es .
+
+shape:TransferStateObservation a sh:NodeShape ;
+    sh:targetClass obs:TransferStateObservation ;
+    sh:property shape:SourceConnector, shape:OccurredAt, [
+        sh:path obs:aboutProcess ; sh:minCount 1 ; sh:class obs:TransferProcess
+    ], [
+        sh:path obs:dspState ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("REQUESTED" "STARTED" "COMPLETED" "SUSPENDED" "TERMINATED")
+    ] .
+
+shape:ConnectorHealthRecord a sh:NodeShape ;
+    sh:targetClass obs:ConnectorHealthRecord ;
+    sh:property shape:OccurredAt, [
+        sh:path obs:monitoredConnector ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ; sh:class obs:Connector
+    ], [
+        sh:path obs:healthState ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("UP" "DEGRADED" "DOWN" "UNKNOWN")
+    ] .
+
+shape:PolicyEvaluation a sh:NodeShape ;
+    sh:targetClass obs:PolicyEvaluation ;
+    sh:property shape:OccurredAt, [
+        sh:path obs:aboutProcess ; sh:minCount 1
+    ], [
+        sh:path obs:evaluatedPolicy ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+        sh:or ([ sh:class odrl:Policy ] [ sh:class odrl:Agreement ] [ sh:class odrl:Offer ])
+    ], [
+        sh:path obs:evaluatedRule ; sh:maxCount 1 ; sh:nodeKind sh:BlankNodeOrIRI ;
+        sh:or ([ sh:class odrl:Rule ] [ sh:class odrl:Permission ]
+               [ sh:class odrl:Prohibition ] [ sh:class odrl:Duty ])
+    ], [
+        sh:path obs:decision ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:in ("ALLOW" "DENY" "INDETERMINATE")
+    ], [
+        sh:path prov:wasDerivedFrom ; sh:nodeKind sh:IRI
+    ] ;
+    sh:sparql [
+        sh:message "Una regla indicada debe formar parte de la política evaluada en el grafo."@es ;
+        sh:select """
+            PREFIX obs: <https://example.org/dataspace-observability/ontology#>
+            PREFIX odrl: <http://www.w3.org/ns/odrl/2/>
+            SELECT $this ?value WHERE {
+                $this obs:evaluatedPolicy ?policy ; obs:evaluatedRule ?value .
+                FILTER NOT EXISTS {
+                    ?policy (odrl:permission|odrl:prohibition|odrl:obligation|odrl:permission/odrl:duty) ?value .
+                }
+            }
+        """
+    ] .
+
+shape:Trace a sh:NodeShape ;
+    sh:targetClass obs:Trace ;
+    sh:nodeKind sh:IRI ;
+    sh:property [
+        sh:path obs:traceId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+        sh:pattern "^[0-9a-f]{32}$" ;
+        sh:not [ sh:hasValue "00000000000000000000000000000000" ]
+    ] ;
+    sh:sparql [
+        sh:message "El identificador de traza ya está asignado a otro recurso en este grafo."@es ;
+        sh:select """
+            PREFIX obs: <https://example.org/dataspace-observability/ontology#>
+            SELECT $this ?value WHERE {
+                $this obs:traceId ?value .
+                ?other obs:traceId ?value .
+                FILTER (!sameTerm(?other, $this))
+            }
+        """
+    ] .
+
+shape:InTrace a sh:PropertyShape ;
+    sh:path obs:inTrace ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class obs:Trace .
+
+shape:SpanId a sh:PropertyShape ;
+    sh:path obs:spanId ; sh:maxCount 1 ; sh:datatype xsd:string ;
+    sh:pattern "^[0-9a-f]{16}$" ;
+    sh:not [ sh:hasValue "0000000000000000" ] .
+
+shape:LogRecord a sh:NodeShape ;
+    sh:targetClass obs:LogRecord ;
+    sh:property shape:SourceConnector, shape:InTrace, shape:SpanId, [
+        sh:path obs:body ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1
+    ], [
+        sh:path obs:severityText ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1
+    ] ;
+    sh:or (
+        [ sh:property [ sh:path obs:occurredAt ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path obs:observedAt ; sh:minCount 1 ] ]
+    ) ;
+    sh:or (
+        [ sh:property [ sh:path obs:spanId ; sh:maxCount 0 ] ]
+        [ sh:property [ sh:path obs:inTrace ; sh:minCount 1 ] ]
+    ) .
+
+shape:Span a sh:NodeShape ;
+    sh:targetClass obs:Span ;
+    sh:property shape:SourceConnector, shape:InTrace, shape:SpanId, [
+        sh:path obs:inTrace ; sh:minCount 1
+    ], [
+        sh:path obs:spanId ; sh:minCount 1
+    ], [
+        sh:path obs:spanName ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1
+    ], [
+        sh:path obs:parentSpan ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class obs:Span
+    ], [
+        sh:path obs:spanStartedAt ; sh:minCount 1 ; sh:maxCount 1 ; sh:node shape:Time ;
+        sh:lessThanOrEquals obs:spanEndedAt
+    ], [
+        sh:path obs:spanEndedAt ; sh:minCount 1 ; sh:maxCount 1 ; sh:node shape:Time
+    ] ;
+    sh:sparql [
+        sh:message "El span padre debe pertenecer a la misma traza y no puede haber ciclos."@es ;
+        sh:select """
+            PREFIX obs: <https://example.org/dataspace-observability/ontology#>
+            SELECT $this ?value WHERE {
+                $this obs:parentSpan ?value ; obs:inTrace ?trace .
+                FILTER (EXISTS { $this obs:parentSpan+ $this }
+                        || NOT EXISTS { ?value obs:inTrace ?trace })
+            }
+        """
+    ], [
+        sh:message "Ya existe un span con ese identificador dentro de la misma traza."@es ;
+        sh:select """
+            PREFIX obs: <https://example.org/dataspace-observability/ontology#>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            SELECT $this ?value WHERE {
+                $this obs:spanId ?value ; obs:inTrace ?trace .
+                ?other rdf:type/rdfs:subClassOf* obs:Span ; obs:spanId ?value ; obs:inTrace ?trace .
+                FILTER (!sameTerm(?other, $this))
+            }
+        """
+    ] .
+
+shape:MetricDefinition a sh:NodeShape ;
+    sh:targetClass obs:MetricDefinition ;
+    sh:nodeKind sh:IRI ;
+    sh:property [
+        sh:path obs:metricName ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1
+    ], [
+        sh:path obs:unit ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1
+    ] .
+
+shape:MetricSample a sh:NodeShape ;
+    sh:targetClass obs:MetricSample ;
+    sh:property shape:OccurredAt, [
+        sh:path obs:metric ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+        sh:class obs:MetricDefinition
+    ], [
+        sh:path obs:numericValue ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:decimal
+    ] .
+
+shape:DatasetQualityRecord a sh:NodeShape ;
+    sh:targetClass obs:DatasetQualityRecord ;
+    sh:property shape:OccurredAt, [
+        sh:path dqv:computedOn ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ;
+        sh:or ([ sh:class dcat:Dataset ] [ sh:class dcat:Distribution ])
+    ], [
+        sh:path dqv:isMeasurementOf ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ; sh:class dqv:Metric
+    ], [
+        sh:path dqv:value ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:Literal
+    ] .

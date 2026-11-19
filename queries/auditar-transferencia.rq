@@ -1,0 +1,26 @@
+PREFIX obs: <https://example.org/dataspace-observability/ontology#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+
+SELECT ?log ?fecha ?mensaje ?responsableRegistro ?conector ?proceso ?acuerdo ?dataset ?traceId ?span
+WHERE {
+    ?log a obs:LogRecord ;
+        obs:aboutProcess ?proceso ;
+        obs:body ?mensaje ;
+        obs:sourceConnector ?conector ;
+        prov:wasAttributedTo ?responsableRegistro .
+    ?proceso a obs:TransferProcess ;
+        obs:underAgreement ?acuerdo ;
+        obs:dataset ?dataset .
+    OPTIONAL { ?log obs:occurredAt ?ocurrido . }
+    OPTIONAL { ?log obs:observedAt ?observado . }
+    BIND(COALESCE(?ocurrido, ?observado) AS ?fecha)
+    OPTIONAL {
+        ?log obs:inTrace ?traza .
+        ?traza obs:traceId ?traceId .
+        OPTIONAL {
+            ?log obs:spanId ?spanId .
+            ?span a obs:Span ; obs:inTrace ?traza ; obs:spanId ?spanId .
+        }
+    }
+}
+ORDER BY ?fecha ?log
