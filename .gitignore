@@ -1,4 +1,14 @@
-.DS_Store
-.venv/
-__pycache__/
-*.pyc
+# Ignorar todo por defecto.
+/*
+
+# Mantener este archivo y la documentación principal.
+!/.gitignore
+!/README.md
+
+# Publicar únicamente estos directorios y su contenido.
+!/examples/
+!/examples/**
+!/ontology/
+!/ontology/**
+!/queries/
+!/queries/**
