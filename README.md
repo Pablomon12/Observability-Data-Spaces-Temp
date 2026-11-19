@@ -7,11 +7,8 @@ Perfil RDF/OWL para reconstruir intercambios del plano de control, correlacionar
 | Archivo | Contenido |
 | --- | --- |
 | [ontology/observability.ttl](ontology/observability.ttl) | Fuente canónica del módulo OWL |
-| [shapes/observability.shacl.ttl](shapes/observability.shacl.ttl) | Requisitos para instancias, con SHACL Core y SHACL-SPARQL |
 | [examples/olivar.ttl](examples/olivar.ttl) | Consulta de catálogo, negociación con y sin acuerdo, transferencias, evaluación, logs, spans y mediciones |
 | [queries/](queries/) | Consultas SPARQL de auditoría e historial |
-| [tests/](tests/) | Pruebas del ejemplo, casos que deben rechazarse y regresiones de vocabulario |
-| [tools/](tools/) | Comprobación OWL reproducible con un razonador HermiT disponible localmente |
 
 ## Criterios del modelo
 
